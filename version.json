@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
-  "environment": "staging",
-  "build_date": "2026-04-07"
+  "version": "1.0.1",
+  "environment": "production",
+  "patch": "security-fix"
 }
