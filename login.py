@@ -1,0 +1,60 @@
+import os
+import requests
+import zipfile
+import io
+from pathlib import Path
+
+# URL for the dataset
+DATA_URL = "https://data.gov.ua/dataset/0ffd8b75-0628-48cc-952a-9302f9799ec0/resource/3f13166f-090b-499e-8e23-e9851c5a5f67/download/reestrtz2026.zip"
+
+# Path setup
+SCRIPT_DIR = Path(__file__).resolve().parent
+if SCRIPT_DIR.name == "src":
+    PROJECT_ROOT = SCRIPT_DIR.parent
+else:
+    PROJECT_ROOT = Path.cwd()
+
+OUTPUT_DIR = PROJECT_ROOT / "data" / "raw"
+FINAL_CSV_NAME = "vehicle_registrations.csv"
+
+
+def download_and_extract():
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    print(f"--- Downloading data to: {OUTPUT_DIR} ---")
+
+    headers = {'User-Agent': 'Mozilla/5.0'}
+
+    try:
+        # Request data with stream enabled
+        response = requests.get(DATA_URL, headers=headers, stream=True)
+        response.raise_for_status()
+
+        print("Extracting from memory...")
+
+        with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+            # Find all CSV files in the ZIP archive
+            csv_files = [f for f in z.namelist() if f.endswith('.csv')]
+
+            if not csv_files:
+                print("Error: No CSV file found in the archive.")
+                return
+
+            original_filename = csv_files[0]
+
+            # Extract the first CSV found
+            z.extract(original_filename, OUTPUT_DIR)
+
+            old_path = OUTPUT_DIR / original_filename
+            new_path = OUTPUT_DIR / FINAL_CSV_NAME
+
+            # Replace the file if it already exists
+            if new_path.exists():
+                os.remove(new_path)
+
+            os.rename(old_path, new_path)
+
+            print(f"--- Success! File saved at: {new_path} ---")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
